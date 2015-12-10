@@ -1,0 +1,220 @@
+<!DOCTYPE HTML>
+<html>
+
+<body>
+
+<h1>Forecast for: <span style="color:#454553;"><span id="day"> </span>, <span id="date"> </span></span></h1>
+
+<h1 id="place"> </h1>
+
+<h2><span id="text"> </span></h2>
+
+<h2> Current Temp is <span id="current" style="color: #4AA0D5;"> </span>  </h2>
+
+
+<p>High is: </p>
+<p id="high"> </p>
+
+<p>Low is: </p>
+<p id="low"> </p>
+
+<br >
+<h2> Clothing Reccomendations </h2>
+
+<p id="pants"> <p>
+
+<p id="shirt"> <p>
+
+<p id="outwear"> </p>
+
+<h3> Conditional</h3>
+<p id="conditional"> </p>
+<p id="woeid"> </p>
+<p id="text2"> </p>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"> </script>
+
+<script>
+
+
+  var currentWeatherCallback = function(data) 
+    {
+        var currentData = data.query.results.channel;
+        document.getElementById("current").firstChild.nodeValue=currentData.item.condition.temp;
+        var currentTemp = currentData.item.condition.temp;
+
+        //bottom choice
+        if (currentTemp > 75)
+        {
+            document.getElementById("pants").firstChild.nodeValue="Wear shorts";
+        }
+        else if(currentTemp > 100)
+        {
+            document.getElementById("pants").firstChild.nodeValue="Wear a Speedo";
+        }
+        else {
+            document.getElementById("pants").firstChild.nodeValue="Wear pants";
+        }
+
+        //shirt choice
+        if (currentTemp > 65)
+        {
+            document.getElementById("shirt").firstChild.nodeValue="Wear a t-shirt";
+        }
+        else {
+            document.getElementById("shirt").firstChild.nodeValue="Wear a long sleeve shirt";
+        }
+
+        //outwear choice
+        if (currentTemp < 70 && currentTemp > 59)
+        {
+            document.getElementById("outwear").firstChild.nodeValue="Wear a light sweatshirt";
+        }
+        else if(currentTemp < 60 && currentTemp > 49) {
+            document.getElementById("outwear").firstChild.nodeValue="Wear a warm jacket";
+        }
+        else if(currentTemp < 40) {
+            document.getElementById("outwear").firstChild.nodeValue="Wear a heavy jacket + consider adding other layers";
+        }
+    }
+
+    var woeidEquals;
+
+    //woeid related callback fucntions
+    var woeidCallback = function(data)
+    {
+        woeidEquals = data.query.results.Result.woeid;
+        
+    }
+    var woeidEqualsCallback = function(data)
+    {
+            //var woeData = data.query.results.channel;
+            //document.getElementById("text2").firstChild.nodeValue=woeData.item.forecast[0].text;
+    }
+
+    
+
+    //geolocation
+    window.onload = function() 
+    {
+        var startPos;
+        var geoOptions = 
+        {
+            enableHighAccuracy: true
+        }
+
+        var geoSuccess = function(position) 
+        {
+            startPos = position;
+            var lat = startPos.coords.latitude;
+            var lon = startPos.coords.longitude;
+
+            var weatherURL = "https://query.yahooapis.com/v1/public/yql?q=select * from geo.placefinder where text='"+lat+","+lon+"' and gflags='R' &format=json&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys";
+            $.ajax(
+            {
+                url: weatherURL,
+                dataType: 'json',
+                success: function(data) 
+                {
+                    console.log(data)
+                    
+                    var woeid = data.query.results.Result.woeid;
+
+                     var weatherURL = "https://query.yahooapis.com/v1/public/yql?q=select * from weather.forecast where woeid='"+woeid+"' &format=json&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys";
+                    $.ajax(
+                    {
+                        url: weatherURL,
+                        dataType: 'json',
+                        success: function(data) 
+                        {
+                            console.log(data)
+                            
+                            var weatherData = data.query.results.channel;
+
+                            
+                            //sends yahoo weather data to id'd divs
+                            document.getElementById("high").firstChild.nodeValue=weatherData.item.forecast[0].high;
+                            document.getElementById("low").firstChild.nodeValue=weatherData.item.forecast[0].low;
+                            document.getElementById("date").firstChild.nodeValue=weatherData.item.forecast[0].date;
+                            document.getElementById("day").firstChild.nodeValue=weatherData.item.forecast[0].day;
+                            document.getElementById("text").firstChild.nodeValue=weatherData.item.forecast[0].text;
+                            document.getElementById("place").firstChild.nodeValue=weatherData.location.city + ", " + weatherData.location.country;
+                            
+                            //displays weather code to console
+                            console.log("the weather code is: " + weatherData.item.condition.code);
+
+                            //rain codes
+                            if(["3","4","8","9","10","11","12","35","45"].indexOf(weatherData.item.condition.code)!== -1)
+                            {
+                                document.getElementById("conditional").firstChild.nodeValue="It's raining! Bring a raincoat or an umbrella";
+                            }
+                            //snow codes
+                            else if(["13","14","15","16","41","42","43","46"].indexOf(weatherData.item.condition.code)!== -1)
+                            {
+                                document.getElementById("conditional").firstChild.nodeValue="It's snowing! Make sure you bundle up and wear something on your head";
+                            }
+                            //grease (hurricane easter egg)
+                            else if(["2"].indexOf(weatherData.item.condition.code)!== -1)
+                            {
+                                document.getElementById("conditional").firstChild.nodeValue="you: Sandy! the storm: Tell me about it, stud";
+                            }
+                            //no conditional info
+                            else 
+                            {
+                                document.getElementById("conditional").firstChild.nodeValue="You are good to go. No conditional information!";
+                            }
+                            
+
+                        }
+                    });
+
+                }
+            });
+        };
+
+
+        //error explanation
+        var geoError = function(error) 
+        {
+            //error message options
+            var errorMessage;
+            switch(error.code) 
+            {
+                case 0:
+                    errorMessage = "Error code 0: unkown error";
+                    break;
+                case 1:
+                    errorMessage = "Error code 1: permission denied";
+                    break;
+                case 2:
+                    errorMessage = "Error code 2: position unavailable (error response from location provider)";
+                    break;
+                case 3:
+                    errorMessage = "Error code 3: timed out";
+                    break;
+
+            }
+            //the actual error message 
+            console.error('Geolocation error occurred. ' + errorMessage);
+        };
+        navigator.geolocation.getCurrentPosition(geoSuccess, geoError, geoOptions);
+    };
+
+    
+</script>
+
+<!-- API Request for current weather data -->
+<script src="https://query.yahooapis.com/v1/public/yql?q=select item.condition from weather.forecast where woeid = '12797118' &format=json&callback=currentWeatherCallback"> </script>
+
+
+
+
+
+
+
+
+</body>
+
+
+</html>
+
